@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Slideshow from './components/Slideshow';
 
 function App() {
@@ -21,11 +21,31 @@ function App() {
     '/pdfs/A-3-20_Kurusu_Shogo.pdf'
   ];
 
+  // 画面サイズの状態を管理
+  const [dimensions, setDimensions] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+
+  // 画面サイズが変更された時の処理
+  useEffect(() => {
+    const handleResize = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
-    <div className="font-sans w-screen h-screen overflow-hidden">
+    <div className="font-sans w-screen h-screen overflow-hidden" style={{ width: dimensions.width, height: dimensions.height }}>
       <Slideshow 
         pdfs={pdfs}
         slideDuration={slideDuration}
+        dimensions={dimensions}
       />
     </div>
   );

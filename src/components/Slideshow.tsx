@@ -5,9 +5,13 @@ import { Sun, Moon, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
 interface SlideshowProps {
   pdfs: string[];
   slideDuration: number;
+  dimensions: {
+    width: number;
+    height: number;
+  };
 }
 
-const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration }) => {
+const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -89,50 +93,27 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration }) => {
   const currentTheme = themeColors[theme];
 
   return (
-    <div className={`h-screen w-screen flex flex-col ${currentTheme.bg}`}>
+    <div className={`h-screen w-screen flex flex-col ${currentTheme.bg}`} style={{ width: dimensions.width, height: dimensions.height }}>
       {/* Main Slide Container */}
       <div className="flex-grow relative overflow-hidden">
         <div 
-          className={`absolute inset-0 transition-all duration-700 ease-in-out ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
+          className="absolute inset-0 transition-all duration-700 ease-in-out"
           style={{ 
-            transform: `translateX(${isTransitioning ? '-20%' : '0%'})`,
-            transition: 'transform 700ms cubic-bezier(0.4, 0, 0.2, 1), opacity 700ms cubic-bezier(0.4, 0, 0.2, 1)',
+            opacity: isTransitioning ? 0 : 1,
+            transform: isTransitioning ? 'scale(0.98)' : 'scale(1)',
+            transition: 'transform 700ms ease-in-out, opacity 700ms ease-in-out',
             willChange: 'transform, opacity',
-            padding: '0.5rem 0',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center'
           }}
         >
-          <div style={{ transform: 'scale(0.9)' }}>
-            <PDFSlide 
-              pdfUrl={pdfs[currentIndex]}
-              theme={theme}
-            />
-          </div>
+          <PDFSlide 
+            pdfUrl={pdfs[currentIndex]}
+            theme={theme}
+            dimensions={dimensions}
+          />
         </div>
-        {isTransitioning && (
-          <div 
-            className="absolute inset-0 transition-all duration-700 ease-in-out"
-            style={{ 
-              transform: 'translateX(20%)',
-              opacity: 0,
-              transition: 'transform 700ms cubic-bezier(0.4, 0, 0.2, 1), opacity 700ms cubic-bezier(0.4, 0, 0.2, 1)',
-              willChange: 'transform, opacity',
-              padding: '0.5rem 0',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}
-          >
-            <div style={{ transform: 'scale(0.9)' }}>
-              <PDFSlide 
-                pdfUrl={pdfs[(currentIndex + 1) % totalSlides]}
-                theme={theme}
-              />
-            </div>
-          </div>
-        )}
       </div>
       
       {/* Controls & Indicators */}
