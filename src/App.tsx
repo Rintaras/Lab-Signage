@@ -22,7 +22,7 @@ function App() {
   ];
 
   return (
-    <div className="font-sans">
+    <div className="font-sans w-screen h-screen overflow-hidden">
       <Slideshow 
         pdfs={pdfs}
         slideDuration={slideDuration}
