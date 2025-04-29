@@ -71,6 +71,7 @@ npm run electron:dev
 # ビルド
 npm run build
 npm run electron:build:mac
+NODE_ENV=development npm run electron:dev
 
 # 実行ファイル
 ./dist/mac/DigitalSignage.app
@@ -78,20 +79,154 @@ npm run electron:build:mac
 
 ### Raspberry Pi (Linux)
 
+#### 1. 基本セットアップ
 ```bash
-# 必要なパッケージのインストール
+# システムの更新
 sudo apt-get update
-sudo apt-get install -y nodejs npm
+sudo apt-get upgrade -y
 
-# 開発モード
-npm run electron:dev
+# Node.jsとnpmのインストール
+curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+sudo apt-get install -y nodejs
 
-# ビルド
+# Node.jsのバージョン確認
+node -v
+npm -v
+```
+
+#### 2. アプリケーションのセットアップ
+```bash
+# アプリケーションディレクトリの作成
+mkdir -p /home/pi/DigitalSignage
+cd /home/pi/DigitalSignage
+
+# リポジトリのクローン
+git clone https://github.com/Rintaras/Digital-Signage .
+
+# 依存パッケージのインストール
+npm install
+
+# アプリケーションのビルド
 npm run build
 npm run electron:build:linux
+```
 
-# 実行ファイル
-./dist/linux-unpacked/DigitalSignage
+#### 3. 自動起動の設定
+
+1. systemdサービスの作成:
+```bash
+sudo nano /etc/systemd/system/digitalsignage.service
+```
+
+以下の内容を記述:
+```ini
+[Unit]
+Description=Digital Signage Application
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+WorkingDirectory=/home/pi/DigitalSignage
+ExecStart=/home/pi/DigitalSignage/dist/linux-unpacked/DigitalSignage
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
+```
+
+2. サービスの有効化と起動:
+```bash
+# サービスの登録
+sudo systemctl daemon-reload
+
+# サービスの有効化（起動時に自動実行）
+sudo systemctl enable digitalsignage
+
+# サービスの開始
+sudo systemctl start digitalsignage
+
+# ステータス確認
+sudo systemctl status digitalsignage
+```
+
+#### 4. ディスプレイ設定
+
+1. スクリーンセーバーの無効化:
+```bash
+sudo nano /etc/xdg/lxsession/LXDE-pi/autostart
+```
+
+以下の内容を追加:
+```bash
+@xset s off
+@xset -dpms
+@xset s noblank
+```
+
+2. ディスプレイの回転（必要な場合）:
+```bash
+sudo nano /boot/config.txt
+```
+
+以下の行を追加（例：180度回転の場合）:
+```bash
+display_rotate=2
+```
+
+#### 5. トラブルシューティング
+
+1. 画面が表示されない場合:
+```bash
+# ログの確認
+sudo journalctl -u digitalsignage -f
+
+# Xサーバーの権限確認
+xhost +local:
+```
+
+2. アプリケーションが起動しない場合:
+```bash
+# サービスの再起動
+sudo systemctl restart digitalsignage
+
+# 依存関係の再インストール
+cd /home/pi/DigitalSignage
+npm install
+npm run build
+```
+
+3. システム起動時の自動ログイン設定:
+```bash
+sudo raspi-config
+```
+- 「System Options」→「Boot / Auto Login」を選択
+- 「Desktop Autologin」を選択
+
+#### 6. メンテナンス
+
+1. PDFファイルの更新:
+```bash
+# PDFファイルの配置
+cd /home/pi/DigitalSignage/public/pdfs
+# ここにPDFファイルをコピー
+
+# アプリケーションの再起動
+sudo systemctl restart digitalsignage
+```
+
+2. システムの定期更新:
+```bash
+# 定期的なシステム更新のcron設定
+sudo crontab -e
+```
+
+以下の行を追加（毎週日曜日の午前3時に更新）:
+```bash
+0 3 * * 0 apt-get update && apt-get upgrade -y
 ```
 
 ## PDFファイルの配置
