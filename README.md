@@ -1,153 +1,143 @@
-# Digital Signage PDF Slideshow
+# デジタルサイネージアプリケーション
 
-PDFファイルをスライドショー形式で表示するデジタルサイネージアプリケーションです。
+PDFスライドショーを表示するデジタルサイネージアプリケーションです。
 
 ## 機能
 
+### 基本機能
 - PDFファイルの自動スライドショー表示
-- スムーズなスライド切り替えアニメーション
-- ライト/ダークモード切り替え
-- 手動でのスライド切り替え
-- 自動再生の一時停止/再開
+- フルスクリーン表示対応
+- 画面サイズに合わせた自動リサイズ
+- PDFファイルの自動読み込み（`public/pdfs`フォルダ内のPDFを自動検出）
 
-## システム要件
+### 表示制御
+- スライド切り替え間隔: 10秒
+- 再生/一時停止機能
+- 前後のスライドへの手動切り替え
+- プログレスバーによる進行状況の表示
+- スライド番号の表示
+
+### 時計機能
+- 現在時刻の表示（24時間表示）
+- 日付表示（MM/DD (曜)）
+- 時計表示のオン/オフ切り替え
+
+### テーマ設定
+- ライト/ダークモードの切り替え
+- 時間帯による自動テーマ切り替え
+  - 18:00-04:59: ダークモード
+  - 05:00-17:59: ライトモード
+- 手動での一時的なテーマ変更
+- 18:00と05:00に自動でテーマをリセット
+
+## 必要要件
 
 - Node.js 16.0.0以上
 - npm 7.0.0以上
-- 各OSの基本的な開発環境
 
-## インストール手順
+## インストール方法
 
-### 共通の準備
-
-1. リポジトリをクローン
 ```bash
-git clone [リポジトリURL]
-cd digitalsignage
-```
+# リポジトリのクローン
+git clone [repository-url]
+cd DigitalSignage
 
-2. 依存関係のインストール
-```bash
+# 依存パッケージのインストール
 npm install
 ```
 
-### MacOSでの実行
+## 実行方法
 
-1. 必要なツールのインストール
+### Windows
+
 ```bash
-# Homebrewがインストールされていない場合
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# 開発モード
+npm run electron:dev
 
-# Node.jsのインストール
-brew install node
+# ビルド
+npm run build
+npm run electron:build:win
+
+# 実行ファイル
+./dist/win-unpacked/DigitalSignage.exe
 ```
 
-2. アプリケーションの起動
+### macOS
+
 ```bash
-npm run dev
+# 開発モード
+npm run electron:dev
+
+# ビルド
+npm run build
+npm run electron:build:mac
+
+# 実行ファイル
+./dist/mac/DigitalSignage.app
 ```
 
-### Windowsでの実行
+### Raspberry Pi (Linux)
 
-1. 必要なツールのインストール
-- [Node.js公式サイト](https://nodejs.org/)からLTS版をダウンロードしてインストール
-- インストール時に「Add to PATH」オプションを選択
-
-2. アプリケーションの起動
 ```bash
-npm run dev
+# 必要なパッケージのインストール
+sudo apt-get update
+sudo apt-get install -y nodejs npm
+
+# 開発モード
+npm run electron:dev
+
+# ビルド
+npm run build
+npm run electron:build:linux
+
+# 実行ファイル
+./dist/linux-unpacked/DigitalSignage
 ```
 
-### Linuxでの実行
+## PDFファイルの配置
 
-1. 必要なツールのインストール
-```bash
-# Ubuntu/Debianの場合
-sudo apt update
-sudo apt install nodejs npm
+1. `public/pdfs`フォルダにPDFファイルを配置
+2. アプリケーションが自動的にファイルを検出
+3. ファイル名のアルファベット順で表示
 
-# Fedoraの場合
-sudo dnf install nodejs npm
+## キーボードショートカット
 
-# Arch Linuxの場合
-sudo pacman -S nodejs npm
+- `ESC`: アプリケーションの終了
+- `Space`: スライドショーの一時停止/再開
+- `→`: 次のスライド
+- `←`: 前のスライド
+
+## 設定のカスタマイズ
+
+### スライド切り替え間隔の変更
+`src/App.tsx`の`slideDuration`を変更（デフォルト: 10秒）
+
+```typescript
+const slideDuration = 10; // 秒単位で設定
 ```
 
-2. アプリケーションの起動
-```bash
-npm run dev
+### 自動テーマ切り替え時刻の変更
+`src/components/Slideshow.tsx`の時間設定を変更
+
+```typescript
+const shouldBeDark = hour >= 18 || hour < 5; // 時間の範囲を変更
 ```
-
-### Raspberry Piでの実行
-
-1. 必要なツールのインストール
-```bash
-# Raspberry Pi OSの場合
-sudo apt update
-sudo apt install nodejs npm
-
-# Node.jsのバージョンが古い場合は、nvmを使用して最新版をインストール
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-source ~/.bashrc
-nvm install --lts
-```
-
-2. アプリケーションの起動
-```bash
-npm run dev
-```
-
-## 使用方法
-
-1. `public/pdfs`ディレクトリに表示したいPDFファイルを配置
-2. アプリケーションを起動
-3. ブラウザで`http://localhost:5173`にアクセス
-
-## カスタマイズ
-
-### PDFファイルの追加/変更
-
-1. `public/pdfs`ディレクトリにPDFファイルを配置
-2. `src/App.tsx`の`pdfs`配列を更新
-
-### スライド表示時間の変更
-
-`src/components/Slideshow.tsx`の`slideDuration`プロパティを変更（デフォルト: 10秒）
 
 ## トラブルシューティング
 
-### 一般的な問題
+1. PDFが表示されない場合
+   - `public/pdfs`フォルダの存在を確認
+   - PDFファイルの権限を確認
+   - アプリケーションの再起動を試行
 
-- **PDFが表示されない場合**
-  - PDFファイルが正しいディレクトリに配置されているか確認
-  - PDFファイル名が正しく指定されているか確認
+2. 画面サイズが正しく調整されない場合
+   - フルスクリーンモードの切り替えを試行（F11）
+   - アプリケーションの再起動を試行
 
-- **アプリケーションが起動しない場合**
-  - Node.jsとnpmが正しくインストールされているか確認
-  - 依存関係が正しくインストールされているか確認
-
-### OS固有の問題
-
-- **MacOS**
-  - ポート5173が使用中の場合は、別のポートを指定
-  ```bash
-  npm run dev -- --port 3000
-  ```
-
-- **Windows**
-  - ファイアウォールの設定を確認
-  - 管理者権限でコマンドプロンプトを実行
-
-- **Linux/Raspberry Pi**
-  - 必要な権限が付与されているか確認
-  ```bash
-  sudo chown -R $USER:$USER .
-  ```
+3. テーマが自動切り替えされない場合
+   - システム時刻の確認
+   - 自動テーマモードが有効になっているか確認
 
 ## ライセンス
 
-MIT License
-
-## 作者
-
-[作者名] 
+[License Type] - 詳細は[LICENSE](./LICENSE)ファイルを参照してください。 
