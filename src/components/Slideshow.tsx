@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import PDFSlide from './PDFSlide';
-import { Sun, Moon, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
+import { Sun, Moon, ChevronLeft, ChevronRight, Pause, Play, Clock, Eye, EyeOff } from 'lucide-react';
 
 interface SlideshowProps {
   pdfs: string[];
@@ -17,8 +17,61 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [progress, setProgress] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [showClock, setShowClock] = useState(true);
+  const [isAutoTheme, setIsAutoTheme] = useState(true);
+  const [lastAutoUpdate, setLastAutoUpdate] = useState<number>(0);
 
   const totalSlides = pdfs.length;
+
+  // 時間帯に応じたテーマの自動切り替え
+  useEffect(() => {
+    const updateThemeByTime = (date: Date) => {
+      const hour = date.getHours();
+      const minutes = date.getMinutes();
+      const currentMinutes = hour * 60 + minutes;
+      
+      // 18時または5時になった時に強制的に自動モードに切り替える
+      if ((hour === 18 && minutes === 0) || (hour === 5 && minutes === 0)) {
+        if (lastAutoUpdate !== currentMinutes) {
+          setIsAutoTheme(true);
+          setLastAutoUpdate(currentMinutes);
+        }
+      }
+
+      // 自動モードの場合のみテーマを更新
+      if (isAutoTheme) {
+        const shouldBeDark = hour >= 18 || hour < 5;
+        setTheme(shouldBeDark ? 'dark' : 'light');
+      }
+    };
+
+    // 初期設定
+    updateThemeByTime(new Date());
+
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now);
+      updateThemeByTime(now);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isAutoTheme, lastAutoUpdate]);
+
+  // 時刻のフォーマット
+  const formatTime = (date: Date) => {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  // 日付のフォーマット
+  const formatDate = (date: Date) => {
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+    return `${month}/${day} (${dayOfWeek})`;
+  };
 
   // Function to move to the next slide
   const nextSlide = useCallback(() => {
@@ -87,10 +140,11 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
     };
   }, [isPaused, slideDuration, nextSlide, isTransitioning]);
 
-  // Toggle theme between light and dark
-  const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
-  };
+  // 手動でのテーマ切り替え
+  const toggleTheme = useCallback(() => {
+    setIsAutoTheme(false);
+    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+  }, []);
 
   // Toggle play/pause state
   const togglePlayPause = () => {
@@ -117,10 +171,59 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
 
   const currentTheme = themeColors[theme];
 
+  // 自動/手動モードの切り替えボタンのレンダリング
+  const renderThemeControls = () => (
+    <div className="flex items-center space-x-2">
+      <button 
+        onClick={toggleTheme} 
+        className={`p-2 rounded-full ${currentTheme.control}`}
+        aria-label={theme === 'light' ? "Switch to dark mode" : "Switch to light mode"}
+        title={theme === 'light' ? "Switch to dark mode" : "Switch to light mode"}
+      >
+        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+      </button>
+      <button 
+        onClick={() => setIsAutoTheme(prev => !prev)}
+        className={`p-2 rounded-full ${currentTheme.control} ${isAutoTheme ? 'ring-2 ring-blue-400' : ''}`}
+        aria-label={isAutoTheme ? "Disable auto theme" : "Enable auto theme"}
+        title={isAutoTheme ? "Auto theme enabled (18:00-05:00 Dark)" : "Auto theme disabled"}
+      >
+        <Clock size={20} className={isAutoTheme ? '' : 'opacity-50'} />
+      </button>
+    </div>
+  );
+
   return (
     <div className={`h-screen w-screen flex flex-col ${currentTheme.bg}`} style={{ width: dimensions.width, height: dimensions.height }}>
+      {/* 時計の表示 */}
+      {showClock && (
+        <div className={`absolute top-4 right-4 flex flex-col items-end z-50`}>
+          <div className={`
+            backdrop-blur-xl 
+            ${theme === 'light' 
+              ? 'bg-white/60 text-slate-800 shadow-[0_8px_32px_rgba(0,0,0,0.15)]' 
+              : 'bg-slate-900/60 text-white shadow-[0_8px_32px_rgba(255,255,255,0.15)]'
+            }
+            rounded-2xl 
+            p-4
+            border-2
+            ${theme === 'light' ? 'border-white/70' : 'border-slate-700/70'}
+          `}>
+            <div className="text-5xl font-extralight tracking-wider drop-shadow-md">
+              {formatTime(currentTime)}
+            </div>
+            <div className={`
+              text-sm font-medium text-right mt-1
+              ${theme === 'light' ? 'text-slate-700' : 'text-slate-200'}
+            `}>
+              {formatDate(currentTime)}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Slide Container */}
-      <div className="flex-grow relative overflow-hidden">
+      <div className="flex-grow relative overflow-hidden z-0">
         <div 
           key={currentIndex}
           className="absolute inset-0 w-full h-full"
@@ -186,19 +289,40 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
             ))}
           </div>
           
-          {/* Right side - Theme toggle & slide info */}
+          {/* Right side - Theme controls & clock toggle */}
           <div className="flex items-center space-x-4">
             <span className={`text-sm ${currentTheme.text}`}>
               {currentIndex + 1} / {totalSlides}
             </span>
             
             <button 
-              onClick={toggleTheme} 
-              className={`p-2 rounded-full ${currentTheme.control}`}
-              aria-label={theme === 'light' ? "Switch to dark mode" : "Switch to light mode"}
+              onClick={() => setShowClock(prev => !prev)} 
+              className={`p-2 rounded-full ${currentTheme.control} relative`}
+              aria-label={showClock ? "Hide clock" : "Show clock"}
+              title={showClock ? "Hide clock display" : "Show clock display"}
             >
-              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+              {showClock ? <Eye size={20} /> : <EyeOff size={20} />}
             </button>
+
+            {/* Theme controls */}
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={toggleTheme} 
+                className={`p-2 rounded-full ${currentTheme.control}`}
+                aria-label={theme === 'light' ? "Switch to dark mode" : "Switch to light mode"}
+                title={theme === 'light' ? "Switch to dark mode" : "Switch to light mode"}
+              >
+                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+              </button>
+              <button 
+                onClick={() => setIsAutoTheme(prev => !prev)}
+                className={`p-2 rounded-full ${currentTheme.control} ${isAutoTheme ? 'ring-2 ring-blue-400' : ''}`}
+                aria-label={isAutoTheme ? "Disable auto theme" : "Enable auto theme"}
+                title={isAutoTheme ? "Auto theme enabled (18:00-05:00 Dark)" : "Auto theme disabled"}
+              >
+                <Clock size={20} className={isAutoTheme ? '' : 'opacity-50'} />
+              </button>
+            </div>
           </div>
         </div>
         

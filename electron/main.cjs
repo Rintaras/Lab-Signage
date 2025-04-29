@@ -1,5 +1,38 @@
 const { app, BrowserWindow, screen } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const express = require('express');
+const cors = require('cors');
+
+// Express サーバーの設定
+const setupServer = () => {
+  const server = express();
+  server.use(cors());
+
+  // PDFファイルリストを提供するエンドポイント
+  server.get('/api/pdfs', (req, res) => {
+    const pdfDir = path.join(process.env.NODE_ENV === 'development' 
+      ? process.cwd()
+      : process.resourcesPath, 
+      'public', 'pdfs'
+    );
+
+    try {
+      const files = fs.readdirSync(pdfDir)
+        .filter(file => file.toLowerCase().endsWith('.pdf'));
+      res.json(files);
+    } catch (error) {
+      console.error('Error reading PDF directory:', error);
+      res.status(500).json({ error: 'Failed to read PDF directory' });
+    }
+  });
+
+  // 開発環境の場合は3002ポートで起動（Viteは3001を使用）
+  const port = 3002;
+  server.listen(port, () => {
+    console.log(`API server running on port ${port}`);
+  });
+};
 
 function createWindow() {
   // プライマリディスプレイのサイズを取得
@@ -27,6 +60,9 @@ function createWindow() {
     // 画面の自動調整を有効化
     useContentSize: true
   });
+
+  // APIサーバーのセットアップ
+  setupServer();
 
   // 開発環境ではViteの開発サーバーに接続
   if (process.env.NODE_ENV === 'development') {

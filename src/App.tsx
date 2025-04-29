@@ -5,21 +5,27 @@ function App() {
   // Set slide duration to 10 seconds per slide
   const slideDuration = 10;
 
-  // PDFs from the public folder
-  const pdfs = [
-    '/pdfs/A-3-7_Kaneda_Masashi.pdf',
-    '/pdfs/A-3-21_Kubota_Teruyoshi.pdf',
-    '/pdfs/A-3-23_Ozawa_Takuto.pdf',
-    '/pdfs/A-3-19_Noji_Kakeru.pdf',
-    '/pdfs/A-3-8_Aoki_Yuya.pdf',
-    '/pdfs/A-3-12_Komatsu_Daisuke.pdf',
-    '/pdfs/A-3-18_Tatsukawa_Koumitsu.pdf',
-    '/pdfs/A-3-10_Nemoto_Yuki.pdf',
-    '/pdfs/A-3-9_Takahashi_Yuki.pdf',
-    '/pdfs/A-3-22_Ono_Ryota.pdf',
-    '/pdfs/A-3-11_Haga_Kippei.pdf',
-    '/pdfs/A-3-20_Kurusu_Shogo.pdf'
-  ];
+  const [pdfs, setPdfs] = useState<string[]>([]);
+
+  // PDFファイルを自動で読み込む
+  useEffect(() => {
+    const loadPdfs = async () => {
+      try {
+        // publicフォルダ内のpdfsディレクトリをスキャン
+        const response = await fetch('http://localhost:3002/api/pdfs');
+        if (!response.ok) throw new Error('Failed to fetch PDF list');
+        const files: string[] = await response.json();
+        
+        // ファイル名でソート
+        const sortedFiles = files.sort((a, b) => a.localeCompare(b));
+        setPdfs(sortedFiles.map(file => `/pdfs/${file}`));
+      } catch (error) {
+        console.error('Error loading PDFs:', error);
+      }
+    };
+
+    loadPdfs();
+  }, []);
 
   // 画面サイズの状態を管理
   const [dimensions, setDimensions] = useState({
@@ -39,6 +45,15 @@ function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // PDFが読み込まれるまで待機
+  if (pdfs.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl">Loading PDFs...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="font-sans w-screen h-screen overflow-hidden" style={{ width: dimensions.width, height: dimensions.height }}>
