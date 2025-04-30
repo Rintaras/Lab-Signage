@@ -4,6 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "main": "electron/main.cjs",
+  "author": {
+    "name": "Lab Signage Team",
+    "email": "maintainer@example.com"
+  },
+  "description": "Digital Signage Application",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -21,7 +26,8 @@
     },
     "linux": {
       "target": ["AppImage", "deb"],
-      "arch": ["armv7l"]
+      "defaultArch": "armv7l",
+      "maintainer": "Lab Signage Team <maintainer@example.com>"
     },
     "files": [
       "dist/**/*",
