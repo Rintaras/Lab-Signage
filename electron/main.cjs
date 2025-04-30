@@ -17,13 +17,27 @@ const setupServer = () => {
       'public', 'pdfs'
     );
 
+    console.log('PDF directory path:', pdfDir);
+    
     try {
+      if (!fs.existsSync(pdfDir)) {
+        console.error('PDF directory does not exist:', pdfDir);
+        return res.status(404).json({ error: 'PDF directory not found' });
+      }
+
       const files = fs.readdirSync(pdfDir)
         .filter(file => file.toLowerCase().endsWith('.pdf'));
+      
+      console.log('Found PDF files:', files);
+      
+      if (files.length === 0) {
+        console.warn('No PDF files found in directory:', pdfDir);
+      }
+
       res.json(files);
     } catch (error) {
       console.error('Error reading PDF directory:', error);
-      res.status(500).json({ error: 'Failed to read PDF directory' });
+      res.status(500).json({ error: 'Failed to read PDF directory', details: error.message });
     }
   });
 

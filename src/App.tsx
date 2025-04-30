@@ -13,14 +13,30 @@ function App() {
       try {
         // publicフォルダ内のpdfsディレクトリをスキャン
         const response = await fetch('/api/pdfs');
-        if (!response.ok) throw new Error('Failed to fetch PDF list');
+        if (!response.ok) {
+          console.error('API Response:', response.status, response.statusText);
+          throw new Error(`Failed to fetch PDF list: ${response.status} ${response.statusText}`);
+        }
         const files: string[] = await response.json();
+        console.log('Loaded PDF files:', files);
+        
+        if (files.length === 0) {
+          console.warn('No PDF files found in the directory');
+        }
         
         // ファイル名でソート
         const sortedFiles = files.sort((a, b) => a.localeCompare(b));
         setPdfs(sortedFiles.map(file => `/pdfs/${file}`));
       } catch (error) {
         console.error('Error loading PDFs:', error);
+        // エラー状態を表示
+        return (
+          <div className="flex items-center justify-center h-screen">
+            <div className="text-xl text-red-500">
+              Error loading PDFs: {error instanceof Error ? error.message : 'Unknown error'}
+            </div>
+          </div>
+        );
       }
     };
 
