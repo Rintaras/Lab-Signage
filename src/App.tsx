@@ -12,7 +12,7 @@ function App() {
     const loadPdfs = async () => {
       try {
         // publicフォルダ内のpdfsディレクトリをスキャン
-        const response = await fetch('http://localhost:3002/api/pdfs');
+        const response = await fetch('/api/pdfs');
         if (!response.ok) throw new Error('Failed to fetch PDF list');
         const files: string[] = await response.json();
         
