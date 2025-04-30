@@ -40,7 +40,7 @@ PDFスライドショーを表示するデジタルサイネージアプリケ�
 ```bash
 # リポジトリのクローン
 git clone [repository-url]
-cd DigitalSignage
+cd Lab-Signage
 
 # 依存パッケージのインストール
 npm install
@@ -59,13 +59,14 @@ npm run build
 npm run electron:build:win
 
 # 実行ファイル
-./dist/win-unpacked/DigitalSignage.exe
+./dist/win-unpacked/Lab-Signage.exe
 ```
 
 ### macOS
 
 ```bash
 # 開発モード
+npm install
 npm run electron:dev
 
 # ビルド
@@ -74,7 +75,7 @@ npm run electron:build:mac
 NODE_ENV=development npm run electron:dev
 
 # 実行ファイル
-./dist/mac/DigitalSignage.app
+./dist/mac/Lab-Signage.app
 ```
 
 ### Raspberry Pi (Linux)
@@ -97,11 +98,11 @@ npm -v
 #### 2. アプリケーションのセットアップ
 ```bash
 # アプリケーションディレクトリの作成
-mkdir -p /home/pi/DigitalSignage
-cd /home/pi/DigitalSignage
+mkdir -p /home/pi/Lab-Signage
+cd /home/pi/Lab-Signage
 
 # リポジトリのクローン
-git clone https://github.com/Rintaras/Digital-Signage .
+git clone https://github.com/Rintaras/Lab-Signage .
 
 # 依存パッケージのインストール
 npm install
@@ -115,13 +116,13 @@ npm run electron:build:linux
 
 1. systemdサービスの作成:
 ```bash
-sudo nano /etc/systemd/system/digitalsignage.service
+sudo nano /etc/systemd/system/labsignage.service
 ```
 
 以下の内容を記述:
 ```ini
 [Unit]
-Description=Digital Signage Application
+Description=Lab Signage Application
 After=network.target
 
 [Service]
@@ -129,8 +130,8 @@ Type=simple
 User=pi
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/pi/.Xauthority
-WorkingDirectory=/home/pi/DigitalSignage
-ExecStart=/home/pi/DigitalSignage/dist/linux-unpacked/DigitalSignage
+WorkingDirectory=/home/pi/Lab-Signage
+ExecStart=/home/pi/Lab-Signage/dist/linux-unpacked/Lab-Signage
 Restart=always
 RestartSec=5
 
@@ -144,13 +145,13 @@ WantedBy=graphical.target
 sudo systemctl daemon-reload
 
 # サービスの有効化（起動時に自動実行）
-sudo systemctl enable digitalsignage
+sudo systemctl enable labsignage
 
 # サービスの開始
-sudo systemctl start digitalsignage
+sudo systemctl start labsignage
 
 # ステータス確認
-sudo systemctl status digitalsignage
+sudo systemctl status labsignage
 ```
 
 #### 4. ディスプレイ設定
@@ -182,7 +183,7 @@ display_rotate=2
 1. 画面が表示されない場合:
 ```bash
 # ログの確認
-sudo journalctl -u digitalsignage -f
+sudo journalctl -u labsignage -f
 
 # Xサーバーの権限確認
 xhost +local:
@@ -191,10 +192,10 @@ xhost +local:
 2. アプリケーションが起動しない場合:
 ```bash
 # サービスの再起動
-sudo systemctl restart digitalsignage
+sudo systemctl restart labsignage
 
 # 依存関係の再インストール
-cd /home/pi/DigitalSignage
+cd /home/pi/Lab-Signage
 npm install
 npm run build
 ```
@@ -211,11 +212,11 @@ sudo raspi-config
 1. PDFファイルの更新:
 ```bash
 # PDFファイルの配置
-cd /home/pi/DigitalSignage/public/pdfs
+cd /home/pi/Lab-Signage/public/pdfs
 # ここにPDFファイルをコピー
 
 # アプリケーションの再起動
-sudo systemctl restart digitalsignage
+sudo systemctl restart labsignage
 ```
 
 2. システムの定期更新:
