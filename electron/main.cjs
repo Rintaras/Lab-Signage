@@ -9,17 +9,35 @@ const setupServer = () => {
   const server = express();
   server.use(cors());
 
+  // 静的ファイルの提供
+  server.use('/pdfs', express.static(path.join(
+    process.env.NODE_ENV === 'development' 
+      ? process.cwd()
+      : process.resourcesPath,
+    'public',
+    'pdfs'
+  )));
+
   // PDFファイルリストを提供するエンドポイント
   server.get('/api/pdfs', (req, res) => {
-    const pdfDir = path.join(process.env.NODE_ENV === 'development' 
-      ? process.cwd()
-      : process.resourcesPath, 
-      'public', 'pdfs'
+    const pdfDir = path.join(
+      process.env.NODE_ENV === 'development' 
+        ? process.cwd()
+        : process.resourcesPath,
+      'public',
+      'pdfs'
     );
 
     try {
+      if (!fs.existsSync(pdfDir)) {
+        fs.mkdirSync(pdfDir, { recursive: true });
+      }
       const files = fs.readdirSync(pdfDir)
-        .filter(file => file.toLowerCase().endsWith('.pdf'));
+        .filter(file => file.toLowerCase().endsWith('.pdf'))
+        .map(file => ({
+          name: file,
+          path: `/pdfs/${file}`
+        }));
       res.json(files);
     } catch (error) {
       console.error('Error reading PDF directory:', error);
@@ -27,10 +45,29 @@ const setupServer = () => {
     }
   });
 
+  // PDFファイルを提供するエンドポイント
+  server.get('/pdfs/:filename', (req, res) => {
+    const pdfPath = path.join(
+      process.env.NODE_ENV === 'development'
+        ? process.cwd()
+        : process.resourcesPath,
+      'public',
+      'pdfs',
+      req.params.filename
+    );
+
+    if (fs.existsSync(pdfPath)) {
+      res.sendFile(pdfPath);
+    } else {
+      res.status(404).json({ error: 'PDF file not found' });
+    }
+  });
+
   // 開発環境の場合は3002ポートで起動（Viteは3001を使用）
   const port = 3002;
-  server.listen(port, '0.0.0.0', () => {
-    console.log(`API server running on port ${port}`);
+  const host = '0.0.0.0'; // すべてのネットワークインターフェースでリッスン
+  server.listen(port, host, () => {
+    console.log(`API server running on http://${host}:${port}`);
   });
 };
 
@@ -58,7 +95,10 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      webSecurity: false
+      webSecurity: false,
+      allowRunningInsecureContent: true,
+      webviewTag: true,
+      plugins: true
     },
     fullscreen: true,
     frame: false,
@@ -113,6 +153,11 @@ function createWindow() {
   // エラーが発生した場合のハンドリング
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     console.error('Failed to load:', errorCode, errorDescription);
+  });
+
+  // コンテンツの読み込み完了時の処理
+  win.webContents.on('did-finish-load', () => {
+    console.log('Content loaded successfully');
   });
 }
 

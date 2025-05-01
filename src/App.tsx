@@ -6,21 +6,55 @@ function App() {
   const slideDuration = 10;
 
   const [pdfs, setPdfs] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isPreloading, setIsPreloading] = useState(true);
 
   // PDFファイルを自動で読み込む
   useEffect(() => {
     const loadPdfs = async () => {
       try {
+        // 現在のホスト名を取得
+        const hostname = window.location.hostname;
+        const port = 3002;
+        const apiUrl = `http://${hostname}:${port}/api/pdfs`;
+
         // publicフォルダ内のpdfsディレクトリをスキャン
-        const response = await fetch('http://localhost:3002/api/pdfs');
+        const response = await fetch(apiUrl);
         if (!response.ok) throw new Error('Failed to fetch PDF list');
-        const files: string[] = await response.json();
+        const files = await response.json();
         
+        if (!Array.isArray(files) || files.length === 0) {
+          throw new Error('No PDF files found');
+        }
+
         // ファイル名でソート
-        const sortedFiles = files.sort((a, b) => a.localeCompare(b));
-        setPdfs(sortedFiles.map(file => `/pdfs/${file}`));
+        const sortedFiles = files
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map(file => `http://${hostname}:${port}${file.path}`);
+
+        setPdfs(sortedFiles);
+        setError(null);
+
+        // すべてのPDFをプリロード
+        await Promise.all(
+          sortedFiles.map(async (pdfUrl) => {
+            try {
+              const response = await fetch(pdfUrl);
+              if (!response.ok) throw new Error(`Failed to preload PDF: ${pdfUrl}`);
+              const data = await response.arrayBuffer();
+              return data;
+            } catch (error) {
+              console.error(`Error preloading PDF ${pdfUrl}:`, error);
+              return null;
+            }
+          })
+        );
+
+        setIsPreloading(false);
       } catch (error) {
         console.error('Error loading PDFs:', error);
+        setError(error instanceof Error ? error.message : 'PDFの読み込みに失敗しました');
+        setIsPreloading(false);
       }
     };
 
@@ -47,10 +81,26 @@ function App() {
   }, []);
 
   // PDFが読み込まれるまで待機
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl text-red-500">{error}</div>
+      </div>
+    );
+  }
+
+  if (isPreloading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl">PDFをプリロード中...</div>
+      </div>
+    );
+  }
+
   if (pdfs.length === 0) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-xl">Loading PDFs...</div>
+        <div className="text-xl">PDFファイルが見つかりません</div>
       </div>
     );
   }
