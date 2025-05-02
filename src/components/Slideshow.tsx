@@ -111,7 +111,7 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
     const updateProgress = () => {
       if (!isPaused && !isTransitioning) {
         setProgress((prev) => {
-          const newProgress = prev + (100 / (slideDuration * 100));
+          const newProgress = prev + (100 / (slideDuration * 20));
           if (newProgress >= 100) {
             nextSlide();
             return 0;
@@ -122,7 +122,7 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
     };
 
     const startIntervals = () => {
-      progressInterval = setInterval(updateProgress, 10);
+      progressInterval = setInterval(updateProgress, 50);
     };
 
     startIntervals();
@@ -301,7 +301,7 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
             className={`h-full ${currentTheme.progress} transition-all duration-500 ease-linear`}
             style={{ 
               width: `${progress}%`,
-              transition: isPaused ? 'none' : 'width 500ms linear'
+              transition: isPaused ? 'none' : 'width 400ms linear'
             }}
           />
         </div>
