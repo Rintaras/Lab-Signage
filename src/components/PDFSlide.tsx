@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/TextLayer.css';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// Set worker source
+// PDF.jsのワーカーを設定
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-
-// PDFキャッシュ用のMap
-const pdfCache = new Map<string, any>();
 
 interface PDFSlideProps {
   pdfUrl: string;
@@ -18,97 +15,105 @@ interface PDFSlideProps {
   };
 }
 
+// PDFキャッシュを管理するMap
+const pdfCache = new Map<string, ArrayBuffer>();
+
 const PDFSlide: React.FC<PDFSlideProps> = ({ pdfUrl, theme, dimensions }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageNumber, setPageNumber] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
 
   useEffect(() => {
-    // キャッシュにPDFが存在しない場合のみ読み込む
-    if (!pdfCache.has(pdfUrl)) {
-      setIsLoading(true);
-      fetch(pdfUrl)
-        .then(response => response.arrayBuffer())
-        .then(data => {
-          pdfCache.set(pdfUrl, data);
-          setIsLoading(false);
-        })
-        .catch(error => {
-          console.error('Error preloading PDF:', error);
-          setError('PDFのプリロードに失敗しました');
-          setIsLoading(false);
-        });
-    }
+    const loadPDF = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // キャッシュをチェック
+        if (pdfCache.has(pdfUrl)) {
+          const cachedData = pdfCache.get(pdfUrl);
+          if (cachedData) {
+            setPdfData(cachedData);
+            return;
+          }
+        }
+
+        // PDFをダウンロード
+        const response = await fetch(pdfUrl);
+        if (!response.ok) {
+          throw new Error(`PDFの読み込みに失敗しました: ${response.statusText}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        
+        // キャッシュに保存
+        pdfCache.set(pdfUrl, arrayBuffer);
+        setPdfData(arrayBuffer);
+      } catch (err) {
+        console.error('PDF読み込みエラー:', err);
+        setError(err instanceof Error ? err.message : 'PDFの読み込みに失敗しました');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPDF();
   }, [pdfUrl]);
 
-  function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
-    setError(null);
-  }
-
-  function onDocumentLoadError(error: Error) {
-    console.error('Error loading PDF:', error);
-    setError('PDFの読み込みに失敗しました');
-  }
-
-  const styles = {
-    light: {
-      bg: 'bg-white',
-      text: 'text-slate-900',
-    },
-    dark: {
-      bg: 'bg-slate-900',
-      text: 'text-white',
-    }
   };
 
-  const currentTheme = styles[theme];
-
-  // PDFの表示サイズを計算
-  const calculateScale = () => {
-    const controlsHeight = 25;
-    const maxWidth = dimensions.width;
-    const maxHeight = dimensions.height - controlsHeight;
-    return Math.min(maxWidth / 800, maxHeight / 600) * 1.5;
+  const onDocumentLoadError = (error: Error) => {
+    console.error('PDFドキュメント読み込みエラー:', error);
+    setError(error.message);
   };
+
+  if (error) {
+    return (
+      <div className={`flex items-center justify-center h-full ${theme === 'light' ? 'bg-slate-100' : 'bg-slate-800'}`}>
+        <div className={`text-center ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>
+          <p className="text-lg font-medium">エラーが発生しました</p>
+          <p className="text-sm mt-2">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading || !pdfData) {
+    return (
+      <div className={`flex items-center justify-center h-full ${theme === 'light' ? 'bg-slate-100' : 'bg-slate-800'}`}>
+        <div className={`text-center ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>
+          <p className="text-lg font-medium">PDFを読み込んでいます...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={`h-full w-full ${currentTheme.bg} flex flex-col items-center justify-center fade-in m-0 overflow-hidden`} style={{ width: dimensions.width, height: dimensions.height }}>
-      <div className="relative w-full h-full flex items-center justify-center">
-        {error ? (
-          <div className={`text-center ${currentTheme.text}`}>
-            <p className="text-xl mb-2">{error}</p>
-            <p className="text-sm">PDF URL: {pdfUrl}</p>
+    <div className={`flex items-center justify-center h-full ${theme === 'light' ? 'bg-slate-100' : 'bg-slate-800'}`}>
+      <Document
+        file={pdfData}
+        onLoadSuccess={onDocumentLoadSuccess}
+        onLoadError={onDocumentLoadError}
+        loading={
+          <div className={`text-center ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>
+            <p className="text-lg font-medium">PDFを読み込んでいます...</p>
           </div>
-        ) : isLoading ? (
-          <div className={`text-center ${currentTheme.text}`}>
-            <p>PDFをプリロード中...</p>
-          </div>
-        ) : (
-          <Document
-            file={pdfCache.get(pdfUrl) || pdfUrl}
-            onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={onDocumentLoadError}
-            className="max-h-full"
-            loading={null}
-          >
-            <Page 
-              pageNumber={pageNumber} 
-              className="max-h-full"
-              renderTextLayer={false}
-              renderAnnotationLayer={false}
-              scale={calculateScale()}
-              loading={null}
-            />
-          </Document>
+        }
+      >
+        {numPages && (
+          <Page
+            pageNumber={1}
+            width={dimensions.width * 0.9}
+            height={dimensions.height * 0.9}
+            renderTextLayer={false}
+            renderAnnotationLayer={false}
+            className="shadow-2xl"
+          />
         )}
-      </div>
-      <div className={`${currentTheme.text} text-xs absolute bottom-0 right-0 pr-1 pb-1 bg-opacity-50`}>
-        <p>
-          {pageNumber} / {numPages}
-        </p>
-      </div>
+      </Document>
     </div>
   );
 };
