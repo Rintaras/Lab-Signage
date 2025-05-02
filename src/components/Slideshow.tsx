@@ -83,7 +83,7 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
         return nextIndex >= totalSlides ? 0 : nextIndex;
       });
       setIsTransitioning(false);
-    }, 800);
+    }, 400);
   }, [totalSlides, isTransitioning]);
 
   // 前のスライドに移動
@@ -99,7 +99,7 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
         return nextIndex < 0 ? totalSlides - 1 : nextIndex;
       });
       setIsTransitioning(false);
-    }, 800);
+    }, 400);
   }, [totalSlides, isTransitioning]);
 
   // 自動スライドショー
@@ -107,32 +107,28 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
     if (isPaused) return;
 
     let progressInterval: NodeJS.Timeout;
-    let slideInterval: NodeJS.Timeout;
 
     const updateProgress = () => {
       if (!isPaused && !isTransitioning) {
         setProgress((prev) => {
-          const newProgress = prev + (100 / (slideDuration * 10));
-          return newProgress >= 100 ? 0 : newProgress;
+          const newProgress = prev + (100 / (slideDuration * 100));
+          if (newProgress >= 100) {
+            nextSlide();
+            return 0;
+          }
+          return newProgress;
         });
       }
     };
 
     const startIntervals = () => {
-      progressInterval = setInterval(updateProgress, 100);
-      slideInterval = setInterval(() => {
-        if (!isPaused && !isTransitioning) {
-          setProgress(0);
-          nextSlide();
-        }
-      }, slideDuration * 1000);
+      progressInterval = setInterval(updateProgress, 10);
     };
 
     startIntervals();
 
     return () => {
       clearInterval(progressInterval);
-      clearInterval(slideInterval);
     };
   }, [isPaused, slideDuration, nextSlide, isTransitioning]);
 
@@ -205,11 +201,8 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
             style={{
               opacity: index === currentIndex ? 1 : 0,
               transform: index === currentIndex ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(10px)',
-              transition: 'all 800ms cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: 'all 400ms cubic-bezier(0.4, 0, 0.2, 1)',
               willChange: 'transform, opacity',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
               pointerEvents: index === currentIndex ? 'auto' : 'none'
             }}
           >
@@ -305,10 +298,10 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
         {/* プログレスバー */}
         <div className={`mt-2 w-full h-1 ${currentTheme.progressBg} rounded-full overflow-hidden`}>
           <div 
-            className={`h-full ${currentTheme.progress} transition-all duration-100 ease-linear`}
+            className={`h-full ${currentTheme.progress} transition-all duration-500 ease-linear`}
             style={{ 
               width: `${progress}%`,
-              transition: isPaused ? 'none' : 'width 100ms linear'
+              transition: isPaused ? 'none' : 'width 500ms linear'
             }}
           />
         </div>

@@ -72,7 +72,7 @@ const PDFSlide: React.FC<PDFSlideProps> = ({ pdfUrl, theme, dimensions }) => {
 
   if (error) {
     return (
-      <div className={`flex items-center justify-center h-full ${theme === 'light' ? 'bg-slate-100' : 'bg-slate-800'}`}>
+      <div className={`${theme === 'light' ? 'bg-slate-100' : 'bg-slate-800'}`} style={{width: '100%', height: '100%'}}>
         <div className={`text-center ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>
           <p className="text-lg font-medium">エラーが発生しました</p>
           <p className="text-sm mt-2">{error}</p>
@@ -83,7 +83,7 @@ const PDFSlide: React.FC<PDFSlideProps> = ({ pdfUrl, theme, dimensions }) => {
 
   if (isLoading || !pdfData) {
     return (
-      <div className={`flex items-center justify-center h-full ${theme === 'light' ? 'bg-slate-100' : 'bg-slate-800'}`}>
+      <div className={`${theme === 'light' ? 'bg-slate-100' : 'bg-slate-800'}`} style={{width: '100%', height: '100%'}}>
         <div className={`text-center ${theme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>
           <p className="text-lg font-medium">PDFを読み込んでいます...</p>
         </div>
@@ -92,7 +92,7 @@ const PDFSlide: React.FC<PDFSlideProps> = ({ pdfUrl, theme, dimensions }) => {
   }
 
   return (
-    <div className={`flex items-center justify-center h-full ${theme === 'light' ? 'bg-slate-100' : 'bg-slate-800'}`}>
+    <div className={`${theme === 'light' ? 'bg-slate-100' : 'bg-slate-800'}`} style={{width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
       <Document
         file={pdfData}
         onLoadSuccess={onDocumentLoadSuccess}
@@ -106,11 +106,10 @@ const PDFSlide: React.FC<PDFSlideProps> = ({ pdfUrl, theme, dimensions }) => {
         {numPages && (
           <Page
             pageNumber={1}
-            width={dimensions.width * 0.9}
-            height={dimensions.height * 0.9}
+            width={dimensions.width}
             renderTextLayer={false}
             renderAnnotationLayer={false}
-            className="shadow-2xl"
+            renderMode="canvas"
           />
         )}
       </Document>
