@@ -277,4 +277,62 @@ const shouldBeDark = hour >= 18 || hour < 5; // 時間の範囲を変更
 
 ## ライセンス
 
-[License Type] - 詳細は[LICENSE](./LICENSE)ファイルを参照してください。 
+[License Type] - 詳細は[LICENSE](./LICENSE)ファイルを参照してください。
+
+## Raspberry Piで自動起動する方法
+
+### 1. 起動スクリプトの作成
+
+`/home/pi/start-electron.sh` を作成し、以下の内容にします。
+
+```bash
+#!/bin/bash
+cd /home/pi/Lab-Signage
+npm run electron:dev
+```
+
+実行権限を付与します。
+
+```bash
+chmod +x /home/pi/start-electron.sh
+```
+
+---
+
+### 2. systemdサービスファイルの作成
+
+`/etc/systemd/system/lab-electron.service` を作成し、以下の内容にします。
+
+```
+[Unit]
+Description=Lab Signage Electron App
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/Lab-Signage
+ExecStart=/home/pi/start-electron.sh
+Restart=always
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=multi-user.target
+```
+
+---
+
+### 3. systemdサービスの有効化・起動
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable lab-electron
+sudo systemctl start lab-electron
+```
+
+---
+
+### 注意点
+- Raspberry Pi OSがデスクトップ自動ログイン設定になっている必要があります。
+- `electron:dev`は開発モードです。本番運用時は`electron:build`や`electron:start`を使うことを推奨します。
+- エラーが出た場合は`journalctl -u lab-electron -e`でログを確認してください。 
