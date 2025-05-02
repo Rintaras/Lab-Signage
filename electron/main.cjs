@@ -7,31 +7,39 @@ const cors = require('cors');
 // Express サーバーの設定
 const setupServer = () => {
   const server = express();
-  server.use(cors());
+  
+  // CORSの設定を追加
+  server.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type']
+  }));
 
   // 静的ファイルの提供
-  server.use('/pdfs', express.static(path.join(
+  const pdfDir = path.join(
     process.env.NODE_ENV === 'development' 
       ? process.cwd()
       : process.resourcesPath,
     'public',
     'pdfs'
-  )));
+  );
+
+  // PDFディレクトリが存在しない場合は作成
+  if (!fs.existsSync(pdfDir)) {
+    fs.mkdirSync(pdfDir, { recursive: true });
+  }
+
+  // 静的ファイルの提供
+  server.use('/pdfs', express.static(pdfDir, {
+    setHeaders: (res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+    }
+  }));
 
   // PDFファイルリストを提供するエンドポイント
   server.get('/api/pdfs', (req, res) => {
-    const pdfDir = path.join(
-      process.env.NODE_ENV === 'development' 
-        ? process.cwd()
-        : process.resourcesPath,
-      'public',
-      'pdfs'
-    );
-
     try {
-      if (!fs.existsSync(pdfDir)) {
-        fs.mkdirSync(pdfDir, { recursive: true });
-      }
       const files = fs.readdirSync(pdfDir)
         .filter(file => file.toLowerCase().endsWith('.pdf'))
         .map(file => ({
@@ -47,17 +55,15 @@ const setupServer = () => {
 
   // PDFファイルを提供するエンドポイント
   server.get('/pdfs/:filename', (req, res) => {
-    const pdfPath = path.join(
-      process.env.NODE_ENV === 'development'
-        ? process.cwd()
-        : process.resourcesPath,
-      'public',
-      'pdfs',
-      req.params.filename
-    );
-
+    const pdfPath = path.join(pdfDir, req.params.filename);
+    
     if (fs.existsSync(pdfPath)) {
-      res.sendFile(pdfPath);
+      res.sendFile(pdfPath, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=31536000'
+        }
+      });
     } else {
       res.status(404).json({ error: 'PDF file not found' });
     }
@@ -114,7 +120,7 @@ function createWindow() {
 
   // 開発環境ではViteの開発サーバーに接続
   if (process.env.NODE_ENV === 'development') {
-    win.loadURL('http://localhost:3001').catch(err => {
+    win.loadURL('http://localhost:3003').catch(err => {
       console.error('Failed to load development URL:', err);
       // 本番環境のファイルをフォールバックとして読み込む
       win.loadFile(path.join(__dirname, '../dist/index.html'));

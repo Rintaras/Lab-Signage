@@ -18,19 +18,27 @@ function App() {
         const port = 3002;
         const apiUrl = `http://${hostname}:${port}/api/pdfs`;
 
+        console.log('Loading PDFs from:', apiUrl);
+
         // publicフォルダ内のpdfsディレクトリをスキャン
         const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error('Failed to fetch PDF list');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch PDF list: ${response.status} ${response.statusText}`);
+        }
         const files = await response.json();
         
         if (!Array.isArray(files) || files.length === 0) {
           throw new Error('No PDF files found');
         }
 
+        console.log('Found PDF files:', files);
+
         // ファイル名でソート
         const sortedFiles = files
           .sort((a, b) => a.name.localeCompare(b.name))
           .map(file => `http://${hostname}:${port}${file.path}`);
+
+        console.log('Sorted PDF URLs:', sortedFiles);
 
         setPdfs(sortedFiles);
         setError(null);
@@ -39,9 +47,13 @@ function App() {
         await Promise.all(
           sortedFiles.map(async (pdfUrl) => {
             try {
+              console.log('Preloading PDF:', pdfUrl);
               const response = await fetch(pdfUrl);
-              if (!response.ok) throw new Error(`Failed to preload PDF: ${pdfUrl}`);
+              if (!response.ok) {
+                throw new Error(`Failed to preload PDF: ${response.status} ${response.statusText}`);
+              }
               const data = await response.arrayBuffer();
+              console.log('Successfully preloaded PDF:', pdfUrl);
               return data;
             } catch (error) {
               console.error(`Error preloading PDF ${pdfUrl}:`, error);
