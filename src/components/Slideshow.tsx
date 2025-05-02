@@ -31,7 +31,6 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
       const minutes = date.getMinutes();
       const currentMinutes = hour * 60 + minutes;
       
-      // 18時または5時になった時に強制的に自動モードに切り替える
       if ((hour === 18 && minutes === 0) || (hour === 5 && minutes === 0)) {
         if (lastAutoUpdate !== currentMinutes) {
           setIsAutoTheme(true);
@@ -39,14 +38,12 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
         }
       }
 
-      // 自動モードの場合のみテーマを更新
       if (isAutoTheme) {
         const shouldBeDark = hour >= 18 || hour < 5;
         setTheme(shouldBeDark ? 'dark' : 'light');
       }
     };
 
-    // 初期設定
     updateThemeByTime(new Date());
 
     const timer = setInterval(() => {
@@ -73,37 +70,39 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
     return `${month}/${day} (${dayOfWeek})`;
   };
 
-  // Function to move to the next slide
+  // 次のスライドに移動
   const nextSlide = useCallback(() => {
     if (isTransitioning) return;
     
     setIsTransitioning(true);
     setProgress(0);
     
-    // フェードアウト後にインデックスを更新
     setTimeout(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % totalSlides);
-      // インデックス更新後すぐにトランジションを終了
+      setCurrentIndex((prevIndex) => {
+        const nextIndex = prevIndex + 1;
+        return nextIndex >= totalSlides ? 0 : nextIndex;
+      });
       setIsTransitioning(false);
     }, 800);
   }, [totalSlides, isTransitioning]);
 
-  // Function to move to the previous slide
+  // 前のスライドに移動
   const prevSlide = useCallback(() => {
     if (isTransitioning) return;
     
     setIsTransitioning(true);
     setProgress(0);
     
-    // フェードアウト後にインデックスを更新
     setTimeout(() => {
-      setCurrentIndex((prevIndex) => prevIndex === 0 ? totalSlides - 1 : prevIndex - 1);
-      // インデックス更新後すぐにトランジションを終了
+      setCurrentIndex((prevIndex) => {
+        const nextIndex = prevIndex - 1;
+        return nextIndex < 0 ? totalSlides - 1 : nextIndex;
+      });
       setIsTransitioning(false);
     }, 800);
   }, [totalSlides, isTransitioning]);
 
-  // Automatic slideshow timer
+  // 自動スライドショー
   useEffect(() => {
     if (isPaused) return;
 
@@ -114,16 +113,13 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
       if (!isPaused && !isTransitioning) {
         setProgress((prev) => {
           const newProgress = prev + (100 / (slideDuration * 10));
-          return newProgress;
+          return newProgress >= 100 ? 0 : newProgress;
         });
       }
     };
 
     const startIntervals = () => {
-      // プログレスバーの更新（100ms間隔）
       progressInterval = setInterval(updateProgress, 100);
-
-      // スライド切り替え（slideDuration秒間隔）
       slideInterval = setInterval(() => {
         if (!isPaused && !isTransitioning) {
           setProgress(0);
@@ -140,18 +136,18 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
     };
   }, [isPaused, slideDuration, nextSlide, isTransitioning]);
 
-  // 手動でのテーマ切り替え
+  // テーマ切り替え
   const toggleTheme = useCallback(() => {
     setIsAutoTheme(false);
     setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
   }, []);
 
-  // Toggle play/pause state
+  // 再生/一時停止切り替え
   const togglePlayPause = () => {
     setIsPaused((prev) => !prev);
   };
 
-  // Color theme variables
+  // テーマカラー
   const themeColors = {
     light: {
       bg: 'bg-slate-100',
@@ -170,28 +166,6 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
   };
 
   const currentTheme = themeColors[theme];
-
-  // 自動/手動モードの切り替えボタンのレンダリング
-  const renderThemeControls = () => (
-    <div className="flex items-center space-x-2">
-      <button 
-        onClick={toggleTheme} 
-        className={`p-2 rounded-full ${currentTheme.control}`}
-        aria-label={theme === 'light' ? "Switch to dark mode" : "Switch to light mode"}
-        title={theme === 'light' ? "Switch to dark mode" : "Switch to light mode"}
-      >
-        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-      </button>
-      <button 
-        onClick={() => setIsAutoTheme(prev => !prev)}
-        className={`p-2 rounded-full ${currentTheme.control} ${isAutoTheme ? 'ring-2 ring-blue-400' : ''}`}
-        aria-label={isAutoTheme ? "Disable auto theme" : "Enable auto theme"}
-        title={isAutoTheme ? "Auto theme enabled (18:00-05:00 Dark)" : "Auto theme disabled"}
-      >
-        <Clock size={20} className={isAutoTheme ? '' : 'opacity-50'} />
-      </button>
-    </div>
-  );
 
   return (
     <div className={`h-screen w-screen flex flex-col ${currentTheme.bg}`} style={{ width: dimensions.width, height: dimensions.height }}>
@@ -222,33 +196,36 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
         </div>
       )}
 
-      {/* Main Slide Container */}
+      {/* メインスライドコンテナ */}
       <div className="flex-grow relative overflow-hidden z-0">
-        <div 
-          key={currentIndex}
-          className="absolute inset-0 w-full h-full"
-          style={{ 
-            opacity: isTransitioning ? 0 : 1,
-            transform: isTransitioning ? 'scale(0.95) translateY(10px)' : 'scale(1) translateY(0)',
-            transition: 'all 800ms cubic-bezier(0.4, 0, 0.2, 1)',
-            willChange: 'transform, opacity',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}
-        >
-          <PDFSlide 
-            pdfUrl={pdfs[currentIndex]}
-            theme={theme}
-            dimensions={dimensions}
-          />
-        </div>
+        {pdfs.map((pdf, index) => (
+          <div
+            key={pdf}
+            className="absolute inset-0 w-full h-full"
+            style={{
+              opacity: index === currentIndex ? 1 : 0,
+              transform: index === currentIndex ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(10px)',
+              transition: 'all 800ms cubic-bezier(0.4, 0, 0.2, 1)',
+              willChange: 'transform, opacity',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              pointerEvents: index === currentIndex ? 'auto' : 'none'
+            }}
+          >
+            <PDFSlide
+              pdfUrl={pdf}
+              theme={theme}
+              dimensions={dimensions}
+            />
+          </div>
+        ))}
       </div>
       
-      {/* Controls & Indicators */}
+      {/* コントロールパネル */}
       <div className={`p-4 border-t ${theme === 'light' ? 'border-slate-200' : 'border-slate-700'}`}>
         <div className="flex items-center justify-between max-w-6xl mx-auto">
-          {/* Left side - Navigation controls */}
+          {/* ナビゲーションコントロール */}
           <div className="flex items-center space-x-2">
             <button 
               onClick={prevSlide} 
@@ -275,7 +252,7 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
             </button>
           </div>
           
-          {/* Center - Progress dots */}
+          {/* プログレスドット */}
           <div className="flex items-center space-x-2">
             {Array.from({ length: totalSlides }).map((_, index) => (
               <div 
@@ -289,7 +266,7 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
             ))}
           </div>
           
-          {/* Right side - Theme controls & clock toggle */}
+          {/* テーマコントロール */}
           <div className="flex items-center space-x-4">
             <span className={`text-sm ${currentTheme.text}`}>
               {currentIndex + 1} / {totalSlides}
@@ -304,7 +281,6 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
               {showClock ? <Eye size={20} /> : <EyeOff size={20} />}
             </button>
 
-            {/* Theme controls */}
             <div className="flex items-center space-x-2">
               <button 
                 onClick={toggleTheme} 
@@ -326,7 +302,7 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
           </div>
         </div>
         
-        {/* Progress bar */}
+        {/* プログレスバー */}
         <div className={`mt-2 w-full h-1 ${currentTheme.progressBg} rounded-full overflow-hidden`}>
           <div 
             className={`h-full ${currentTheme.progress} transition-all duration-100 ease-linear`}
