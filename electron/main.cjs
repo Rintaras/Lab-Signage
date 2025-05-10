@@ -154,6 +154,11 @@ function createWindow() {
     if (input.key === 'Escape') {
       app.quit();
     }
+    // F11でフルスクリーン切り替え
+    if (input.key === 'F11' && input.type === 'keyDown') {
+      win.setFullScreen(!win.isFullScreen());
+      event.preventDefault();
+    }
   });
 
   // エラーが発生した場合のハンドリング
