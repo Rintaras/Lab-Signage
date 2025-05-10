@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import PDFSlide from './PDFSlide';
+import ImageSlide from './ImageSlide';
 import { Sun, Moon, ChevronLeft, ChevronRight, Pause, Play, Clock, Eye, EyeOff } from 'lucide-react';
 
 interface SlideshowProps {
-  pdfs: string[];
+  images: string[];
   slideDuration: number;
   dimensions: {
     width: number;
@@ -11,7 +11,7 @@ interface SlideshowProps {
   };
 }
 
-const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }) => {
+const Slideshow: React.FC<SlideshowProps> = ({ images, slideDuration, dimensions }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -22,7 +22,7 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
   const [isAutoTheme, setIsAutoTheme] = useState(true);
   const [lastAutoUpdate, setLastAutoUpdate] = useState<number>(0);
 
-  const totalSlides = pdfs.length;
+  const totalSlides = images.length;
 
   // 時間帯に応じたテーマの自動切り替え
   useEffect(() => {
@@ -194,9 +194,9 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
 
       {/* メインスライドコンテナ */}
       <div className="flex-grow relative overflow-hidden z-0">
-        {pdfs.map((pdf, index) => (
+        {images.map((image, index) => (
           <div
-            key={pdf}
+            key={image}
             className="absolute inset-0 w-full h-full"
             style={{
               opacity: index === currentIndex ? 1 : 0,
@@ -206,8 +206,8 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
               pointerEvents: index === currentIndex ? 'auto' : 'none'
             }}
           >
-            <PDFSlide
-              pdfUrl={pdf}
+            <ImageSlide
+              imageUrl={image}
               theme={theme}
               dimensions={dimensions}
             />
@@ -296,13 +296,10 @@ const Slideshow: React.FC<SlideshowProps> = ({ pdfs, slideDuration, dimensions }
         </div>
         
         {/* プログレスバー */}
-        <div className={`mt-2 w-full h-1 ${currentTheme.progressBg} rounded-full overflow-hidden`}>
-          <div 
-            className={`h-full ${currentTheme.progress} transition-all duration-500 ease-linear`}
-            style={{ 
-              width: `${progress}%`,
-              transition: isPaused ? 'none' : 'width 400ms linear'
-            }}
+        <div className={`mt-4 h-1 w-full ${currentTheme.progressBg} rounded-full overflow-hidden`}>
+          <div
+            className={`h-full ${currentTheme.progress} transition-all duration-50 ease-linear`}
+            style={{ width: `${progress}%` }}
           />
         </div>
       </div>
