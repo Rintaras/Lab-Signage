@@ -5,72 +5,52 @@ function App() {
   // Set slide duration to 10 seconds per slide
   const slideDuration = 10;
 
-  const [pdfs, setPdfs] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isPreloading, setIsPreloading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // PDFファイルを自動で読み込む
+  // 画像ファイルを自動で読み込む
   useEffect(() => {
-    const loadPdfs = async () => {
+    const loadImages = async () => {
       try {
         // 現在のホスト名を取得
         const hostname = window.location.hostname;
         const port = 3002;
-        const apiUrl = `http://${hostname}:${port}/api/pdfs`;
+        const apiUrl = `http://${hostname}:${port}/api/images`;
 
-        console.log('Loading PDFs from:', apiUrl);
+        console.log('Loading images from:', apiUrl);
 
-        // publicフォルダ内のpdfsディレクトリをスキャン
+        // publicフォルダ内のimagesディレクトリをスキャン
         const response = await fetch(apiUrl);
         if (!response.ok) {
-          throw new Error(`Failed to fetch PDF list: ${response.status} ${response.statusText}`);
+          throw new Error(`Failed to fetch image list: ${response.status} ${response.statusText}`);
         }
         const files = await response.json();
         
         if (!Array.isArray(files) || files.length === 0) {
-          throw new Error('No PDF files found');
+          throw new Error('No image files found');
         }
 
-        console.log('Found PDF files:', files);
+        console.log('Found image files:', files);
 
         // ファイル名でソート
         const sortedFiles = files
           .sort((a, b) => a.name.localeCompare(b.name))
           .map(file => `http://${hostname}:${port}${file.path}`);
 
-        console.log('Sorted PDF URLs:', sortedFiles);
+        console.log('Sorted image URLs:', sortedFiles);
 
-        setPdfs(sortedFiles);
+        setImages(sortedFiles);
         setError(null);
-
-        // すべてのPDFをプリロード
-        await Promise.all(
-          sortedFiles.map(async (pdfUrl) => {
-            try {
-              console.log('Preloading PDF:', pdfUrl);
-              const response = await fetch(pdfUrl);
-              if (!response.ok) {
-                throw new Error(`Failed to preload PDF: ${response.status} ${response.statusText}`);
-              }
-              const data = await response.arrayBuffer();
-              console.log('Successfully preloaded PDF:', pdfUrl);
-              return data;
-            } catch (error) {
-              console.error(`Error preloading PDF ${pdfUrl}:`, error);
-              return null;
-            }
-          })
-        );
-
-        setIsPreloading(false);
+        setIsLoading(false);
       } catch (error) {
-        console.error('Error loading PDFs:', error);
-        setError(error instanceof Error ? error.message : 'PDFの読み込みに失敗しました');
-        setIsPreloading(false);
+        console.error('Error loading images:', error);
+        setError(error instanceof Error ? error.message : '画像の読み込みに失敗しました');
+        setIsLoading(false);
       }
     };
 
-    loadPdfs();
+    loadImages();
   }, []);
 
   // 画面サイズの状態を管理
@@ -92,7 +72,7 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // PDFが読み込まれるまで待機
+  // 画像が読み込まれるまで待機
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -101,18 +81,18 @@ function App() {
     );
   }
 
-  if (isPreloading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-xl">PDFをプリロード中...</div>
+        <div className="text-xl">画像を読み込んでいます...</div>
       </div>
     );
   }
 
-  if (pdfs.length === 0) {
+  if (images.length === 0) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-xl">PDFファイルが見つかりません</div>
+        <div className="text-xl">画像ファイルが見つかりません</div>
       </div>
     );
   }
@@ -120,7 +100,7 @@ function App() {
   return (
     <div className="font-sans w-screen h-screen overflow-hidden" style={{ width: dimensions.width, height: dimensions.height }}>
       <Slideshow 
-        pdfs={pdfs}
+        images={images}
         slideDuration={slideDuration}
         dimensions={dimensions}
       />

@@ -24,10 +24,20 @@ const setupServer = () => {
     'pdfs'
   );
 
-  // PDFディレクトリが存在しない場合は作成
-  if (!fs.existsSync(pdfDir)) {
-    fs.mkdirSync(pdfDir, { recursive: true });
-  }
+  const imageDir = path.join(
+    process.env.NODE_ENV === 'development' 
+      ? process.cwd()
+      : process.resourcesPath,
+    'public',
+    'images'
+  );
+
+  // 必要なディレクトリが存在しない場合は作成
+  [pdfDir, imageDir].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  });
 
   // 静的ファイルの提供
   server.use('/pdfs', express.static(pdfDir, {
@@ -37,15 +47,62 @@ const setupServer = () => {
     }
   }));
 
+  server.use('/images', express.static(imageDir, {
+    setHeaders: (res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+    }
+  }));
+
+  // 画像ファイルリストを提供するエンドポイント
+  server.get('/api/images', (req, res) => {
+    try {
+      if (!fs.existsSync(imageDir)) {
+        console.error('Image directory does not exist:', imageDir);
+        return res.status(404).json({ error: 'Image directory not found' });
+      }
+
+      const files = fs.readdirSync(imageDir)
+        .filter(file => file.toLowerCase().endsWith('.jpg'))
+        .map(file => ({
+          name: file,
+          path: `/images/${file}`
+        }));
+
+      if (files.length === 0) {
+        console.log('No image files found in directory:', imageDir);
+      } else {
+        console.log(`Found ${files.length} image files`);
+      }
+
+      res.json(files);
+    } catch (error) {
+      console.error('Error reading image directory:', error);
+      res.status(500).json({ error: 'Failed to read image directory' });
+    }
+  });
+
   // PDFファイルリストを提供するエンドポイント
   server.get('/api/pdfs', (req, res) => {
     try {
+      if (!fs.existsSync(pdfDir)) {
+        console.error('PDF directory does not exist:', pdfDir);
+        return res.status(404).json({ error: 'PDF directory not found' });
+      }
+
       const files = fs.readdirSync(pdfDir)
         .filter(file => file.toLowerCase().endsWith('.pdf'))
         .map(file => ({
           name: file,
           path: `/pdfs/${file}`
         }));
+
+      if (files.length === 0) {
+        console.log('No PDF files found in directory:', pdfDir);
+      } else {
+        console.log(`Found ${files.length} PDF files`);
+      }
+
       res.json(files);
     } catch (error) {
       console.error('Error reading PDF directory:', error);
@@ -53,27 +110,12 @@ const setupServer = () => {
     }
   });
 
-  // PDFファイルを提供するエンドポイント
-  server.get('/pdfs/:filename', (req, res) => {
-    const pdfPath = path.join(pdfDir, req.params.filename);
-    
-    if (fs.existsSync(pdfPath)) {
-      res.sendFile(pdfPath, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'public, max-age=31536000'
-        }
-      });
-    } else {
-      res.status(404).json({ error: 'PDF file not found' });
-    }
-  });
-
-  // 開発環境の場合は3002ポートで起動（Viteは3001を使用）
+  // 開発環境の場合は3002ポートで起動（Viteは3003を使用）
   const port = 3002;
-  const host = '0.0.0.0'; // すべてのネットワークインターフェースでリッスン
-  server.listen(port, host, () => {
-    console.log(`API server running on http://${host}:${port}`);
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`API server running on http://0.0.0.0:${port}`);
+    console.log('Serving PDFs from:', pdfDir);
+    console.log('Serving images from:', imageDir);
   });
 };
 
